@@ -1,0 +1,16 @@
+<?php
+/* To define your own system environment,
+ * copy this file to the same directory as class.myConfig.php.
+ * Override parent SysEnv variables in defineMyConfig() as needed.
+ */
+
+class MyConfig extends config{
+
+    final static function defineMyConfig() {
+    	parent::$path_base = '/joiiin_dev/';
+    	
+    }
+}
+
+MyConfig::defineMyConfig();
+?>
