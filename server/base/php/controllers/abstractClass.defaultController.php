@@ -45,11 +45,12 @@ abstract class defaultController {
    		$logging->logMsg(logging::LOG_LEVEL_INFO, 'Incoming HTTP headers:'.print_r($request->headers, TRUE));
    		
    		// Check authentication exempt list
-   		$authentication_exempted = FALSE;
+   		$this->authentication_exempted = FALSE;
    		foreach($this->authentication_exempted_list as $exempted_action_operation) {
    			if(($exempted_action_operation[0] == '*' || // matching all actions
    					($exempted_action_operation[0] == $request->action  && $exempted_action_operation[1] == '*') || // matching all operations
    					($exempted_action_operation[0] == $request->action &&  $exempted_action_operation[1] == $request->operation))) {
+   						$this->authentication_exempted = TRUE;
    						$logging->logMsg(logging::LOG_LEVEL_INFO, 'Authentication exempted operation ('.$request->action.'->'.$request->operation.')');
    				return TRUE;
    			}
