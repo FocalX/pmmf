@@ -153,14 +153,14 @@ abstract class adminController extends defaultController {
 		}
 	}
 	
-	function restrictedOperationCheck($func_name) {
-		// check user type of current user if it has permission to show name
+	function restrictedOperationCheck($func_name, $min_user_type) {
+		// check user type of current user if it has permission
 		$current_user_type = $this->access_control->getUserType();
-		if($current_user_type == usersModel::USER_TYPE_SYSADMIN) {
+		if($current_user_type <= $min_user_type) {
 			return TRUE;
 		} else {
-			throw new pmmfException('Insufficient previleges', 401,
-					array(logging::LOG_LEVEL_FATAL, "Non-sysadmin user tried to execute an restricted operation: $func_name"));
+			throw new pmmfException('Insufficient privileges', 401,
+					array(logging::LOG_LEVEL_FATAL, "Non-privilleged user tried to execute an restricted operation: $func_name"));
 		}
 	}
 	
