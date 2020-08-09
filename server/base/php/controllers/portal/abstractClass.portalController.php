@@ -7,15 +7,16 @@ require_once realpath(__DIR__) . '/../../lib/class.accessControl.php';
 
 abstract class portalController extends defaultController {
 		
-	private $login_view = 'portal/default';
-	private $default_view = 'protal/default';
+	private $login_view = '';
+	private $login_success_view = '';
+	private $login_success_redirect_location = '';
 	
 	function __construct() {
    		global $request, $logging;
    		
-   		// exempt these target operations from authentication
-   		$this->exemptOperationFromAuthentication('panel', 'login');
-   		$this->exemptOperationFromAuthentication('panel', 'do_login');
+   		// exempt these login operations from authentication
+   		$this->exemptOperationFromAuthentication('*', 'login');
+   		$this->exemptOperationFromAuthentication('*', 'do_login');
    		
    		parent::__construct();
    		
@@ -59,16 +60,17 @@ abstract class portalController extends defaultController {
 	function login() {
 		global $request, $logging;
 		
-		if(!$request->getError()) {
+		if($this->login_view) {
 			$request->setView($this->login_view);
+		} else {
+			throw new pmmfException('Not Allowed', 403,
+					array($logging::LOG_LEVEL_DEBUG, 'Disabled login operation called from '.get_called_class(), __FILE__));
 		}
 	}
 	
 	function do_login() {
 		global $request, $logging;
 		
-		// login successful, set view to the default view
-		$request->setView($this->default_view);
 		
 		if(!$request->getError()) {
 			$input_vars = $request->variables;
@@ -79,7 +81,7 @@ abstract class portalController extends defaultController {
 			} else {
 				$request->setError('Required fields missing');
 				$request->setHTTPReturnCode(400);
-				$logging->logMsg(2, 'Admin Panel: Required parameter missing or empty: handle');
+				$logging->logMsg(2, 'do_login: Required parameter missing or empty: handle');
 				$request->setView($this->login_view);
 			}
 			
@@ -89,7 +91,7 @@ abstract class portalController extends defaultController {
 			} else {
 				$request->setError('Required fields missing');
 				$request->setHTTPReturnCode(400);
-				$logging->logMsg(2, 'Admin Panel: Required parameter missing or empty: password');
+				$logging->logMsg(2, 'do_login: Required parameter missing or empty: password');
 				$request->setView($this->login_view);
 				
 			}
@@ -107,27 +109,34 @@ abstract class portalController extends defaultController {
 						$cookie_expire_time = time() + 2592000; //60 * 60 * 24 * 30  -- # of seconds of 30 days
 						if(!setcookie('auth_token', $access_info['auth_token'], $cookie_expire_time, "/")) {
 							$request->setError('Failed to setup authentication');
-							$logging->logMsg(4, "Admin Panel: Failed to set authentication cookie [auth_token]");
+							$logging->logMsg(4, "do_login: Failed to set authentication cookie [auth_token]");
 							$request->setHTTPReturnCode(403);
 							$request->setView($this->login_view);
 						}
 						if(!setcookie('user_id', $access_info['user_id'], $cookie_expire_time, "/")) {
 							$request->setError('Failed to setup authentication');
-							$logging->logMsg(4, "Admin Panel: Failed to set authentication cookie [user_id]");
+							$logging->logMsg(4, "do_login: Failed to set authentication cookie [user_id]");
 							$request->setHTTPReturnCode(403);
 							$request->setView($this->login_view);
 						}
-						$this->index(); // Go to Admin panel main page
+						// login successful, set view to the default view
+						$request->setView($this->default_view);
+						// if login_success_redirect_location is set, do re-direct instead
+						// (redirection has precedence)
+						if($this->login_success_redirect_location) {
+							$request->setRedirect($this->login_success_redirect_location);
+						}
+						//$this->index(); // Successful login. Go to default main page
 						
 					} else {
 						$request->setError('Account disabled');
-						$logging->logMsg(4, "Admin Panel: diabled user account login attempt ($handle/$user_info[id])");
+						$logging->logMsg(4, "do_login: diabled user account login attempt ($handle/$user_info[id])");
 						$request->setHTTPReturnCode(403);
 						$request->setView($this->login_view);
 					}
 				} else {
 					$request->setError('Invalid username and/or password');
-					$logging->logMsg(3, "Admin Panel: Login Failed because invalid username/password ($handle)");
+					$logging->logMsg(3, "do_login: Login Failed because invalid username/password ($handle)");
 					$request->setHTTPReturnCode(401);
 					$request->setView($this->login_view);
 					
@@ -164,7 +173,7 @@ abstract class portalController extends defaultController {
 	
 	/**
 	 * The view for login page
-	 * @param string $view
+	 * @param string $view e.g. "protal/login"
 	 */
 	protected function setLoginView($view) {
 		$this->login_view = $view;
@@ -173,10 +182,18 @@ abstract class portalController extends defaultController {
 	
 	/**
 	 * The default view after successful login
-	 * @param string $view
+	 * @param string $view -- view string e.g. "protal/panel"
 	 */
-	protected function setDefaultView($view) {
-		$this->default_view = $view;
+	protected function setLoginSuccessView($view) {
+		$this->$login_success_view = $view;
 	}
 	
+	/**
+	 * Set the redirect location after a successful login.
+	 * If this is set, LoginSuccessView will be ignored
+	 * @param string $location -- URL to re-direct e.g. "/portal/panel/dashboard'
+	 */
+	protected function setLoginSuccessRedirectLocation($location) {
+		$this->login_success_redirect_location = $location;
+	}
 }

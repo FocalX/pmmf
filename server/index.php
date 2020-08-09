@@ -92,8 +92,8 @@ try { // a big try to catch pmmfException
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // First check if re-direction has been set
-if($request->getRedirect()) { // if redirect is set, do redirection
-	include $pmmf_base_location.'views/'.$request->getView().'RedirectView.php';
+if($request->getRedirect()) { // if redirect is set, do redirection (ignoring any view)
+	include $pmmf_base_location.'views/defaultRedirectView.php';
 
 // Check if error, use error view
 } else if($request->getError()) { // if error, find error view
@@ -104,12 +104,25 @@ if($request->getRedirect()) { // if redirect is set, do redirection
 	} else {
 		// else use application 'area' default error view
 		$view_dir = dirname($request->getView());
-		$error_view_file = $pmmf_application_location.'views/'.$view_dir.'/defaultErrorView.'.$request->getReturnFormat().'.php';
-		if(file_exists($error_view_file)) {
-			include $error_view_file;
-		} else {
-			// if nothing found, use the base default error view
-			include $pmmf_base_location.'views/defaultErrorView.'.$request->getReturnFormat().'.php';
+		while($view_dir && $view_dir != '.') { // loop through all area/sub-areas (subdirectory in areas)
+			$error_view_file = $pmmf_application_location.'views/'.$view_dir.'/defaultErrorView.'.$request->getReturnFormat().'.php';
+			if(file_exists($error_view_file)) {
+				include $error_view_file;
+				break;
+			} else {
+				$view_dir = dirname($view_dir);
+			}
+		}
+		
+		if(!$view_dir || $view_dir == '.'){
+			// Try the application default error view
+			$error_view_file = $pmmf_application_location.'views/defaultErrorView.'.$request->getReturnFormat().'.php';
+			if(file_exists($error_view_file)) {
+				include $error_view_file;
+			} else {
+				// if still nothing found, use the base default error view
+				include $pmmf_base_location.'views/defaultErrorView.'.$request->getReturnFormat().'.php';
+			}
 		}
 	}
 	
@@ -118,9 +131,30 @@ if($request->getRedirect()) { // if redirect is set, do redirection
 	if(file_exists($success_view_file)) {
 		include $success_view_file;
 	} else {
-		// if nothing found, use base default success view
-		$logging->logMsg(3, 'Specified success view not found:'.$request->getView().'('.$request->getReturnFormat().')');
-		include $pmmf_base_location.'views/defaultSuccessView.'.$request->getReturnFormat().'.php';
+		// else use application 'area' default success view
+		$view_dir = dirname($request->getView());
+		while($view_dir && $view_dir != '.') { // loop through all area/sub-areas (subdirectory in areas)
+			$logging->logMsg(0, 'test='.$view_dir);
+			$success_view_file = $pmmf_application_location.'views/'.$view_dir.'/defaultSuccessView.'.$request->getReturnFormat().'.php';
+			if(file_exists($success_view_file)) {
+				include $success_view_file;
+				break;
+			} else {
+				$view_dir = dirname($view_dir);
+			}
+		}
+		
+		if(!$view_dir || $view_dir == '.'){		
+			// Try the application default success view
+			$success_view_file = $pmmf_application_location.'views/defaultSuccessView.'.$request->getReturnFormat().'.php';
+			if(file_exists($success_view_file)) {
+				include $success_view_file;
+			} else {
+				// if still nothing found, use base default success view
+				$logging->logMsg(3, 'No success view found for '.$request->getView().'('.$request->getReturnFormat().'). Using base default success view.');
+				include $pmmf_base_location.'views/defaultSuccessView.'.$request->getReturnFormat().'.php';
+			}
+		}
 	}
 }
 
