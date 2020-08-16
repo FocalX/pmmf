@@ -28,11 +28,14 @@ class applicationConfig {
 	static public $short_url_domain = ''; // domain name of short url
 
 	// DB configuration ///////////////////////////////////////////
-	static public $db_host = 'localhost';
-	static public $db_user = '';
-	static public $db_password = '';
-	static public $db_name_main = 'pmmf_local'; // main database name
-	static public $db_name_ancillary = '';   // an optional 2nd ancillary database can be set up
+	static public $db_info = array(
+			'_main' => array( // main db info. Key name should always be '_main'
+					'host' => 'localhost',
+					'user' => '',
+					'password' => '',
+					'name' => 'pmmf_local'
+			),
+	);
 	static public $db_api = 2; // 1:mysql / 2:mysqli
 	static public $db_escape = 0; // 1:using / 0:not using real_escape_string function
 

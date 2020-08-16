@@ -7,7 +7,7 @@ class database {
 	// 2 for mysqli
 	// 3 for PDO_MySQL (not implemented)
 	private $api = 1;
-
+	
 	// global config to determine if using real_escape_string function
 	// if 1, escaping will be done according to the database connection character encoding.
 	// Otherwise, escaping will be done assuming ISO-8859-1
@@ -18,31 +18,38 @@ class database {
 	private $dbuser;
 	private $dbpass;
 	private $dbname;
-
+	
 	private $conn = NULL;
 	private $in_transaction = 0;
 	private $err_msg = "";
 	private $errno = NULL;
-
+	
 	static public $MYSQL_ERRNO_DUPLICATE_ENTRY = 1062;
-
+	
 	// $dbname -- name of database; default using the main database name
-	function __construct($dbname=NULL) {
-		$this->dbhost = config::$db_host;
-		$this->dbuser = config::$db_user;
-		$this->dbpass = config::$db_password;
-		if(is_null($dbname)) {
-			$this->dbname = config::$db_name_main;
-		} else {
-			$this->dbname = $dbname;
+	function __construct($db_info_key=NULL) {
+		if(is_null($db_info_key)) {
+			$this->dbhost = config::$db_info['_main']['host'];
+			$this->dbuser = config::$db_info['_main']['user'];
+			$this->dbpass = config::$db_info['_main']['password'];
+			$this->dbname = config::$db_info['_main']['name'];
 		}
-		$this->api = config::$db_api;
-		$this->use_db_escape_string = config::$db_escape;
+		
+		// 		$this->dbhost = config::$db_host;
+		// 		$this->dbuser = config::$db_user;
+		// 		$this->dbpass = config::$db_password;
+		// 		if(is_null($dbname)) {
+		// 			$this->dbname = config::$db_name_main;
+		// 		} else {
+		// 			$this->dbname = $dbname;
+		// 		}
+			$this->api = config::$db_api;
+			$this->use_db_escape_string = config::$db_escape;
 	}
-
-
+	
+	
 	// open a mysql db connection
-	// $new_link -- mysql ext only. Create a new database connect instead of re-using existing one 
+	// $new_link -- mysql ext only. Create a new database connect instead of re-using existing one
 	function connect($new_link=FALSE) {
 		if($this->api == 1) { // mysql ext
 			$this->conn = mysql_connect($this->dbhost, $this->dbuser, $this->dbpass, $new_link);
@@ -51,7 +58,7 @@ class database {
 			$this->conn = mysqli_connect($this->dbhost, $this->dbuser, $this->dbpass, $this->dbname);
 			//mysqli_set_charset($this->conn, "utf8");
 		}
-
+		
 		if(!$this->conn) {
 			if($this->api == 1) { // mysql ext
 				$this->err_msg = mysql_error();
@@ -70,7 +77,7 @@ class database {
 			return true;
 		}
 	}
-
+	
 	function get_connection() {
 		if(isset($this->conn)) {
 			return $this->conn;
@@ -78,7 +85,7 @@ class database {
 			return NULL;
 		}
 	}
-
+	
 	function query($query, $charset='utf8') {
 		// Need php >=5.2.3
 		//mysql_set_charset($charset);
@@ -101,7 +108,7 @@ class database {
 		}
 		return $result;
 	}
-
+	
 	function transaction_start() {
 		if($this->in_transaction) {
 			$this->err_msg = "transaction_start called after a transaction has been started";
@@ -115,7 +122,7 @@ class database {
 			}
 		}
 	}
-
+	
 	function transaction($query) {
 		if(!$this->in_transaction) {
 			$this->err_msg = "transaction_query called without a transaction";
@@ -129,8 +136,8 @@ class database {
 			}
 		}
 	}
-
-
+	
+	
 	function transaction_commit() {
 		if(!$this->in_transaction) {
 			$this->err_msg = "transaction_commit called without a transaction";
@@ -140,8 +147,8 @@ class database {
 			$this->in_transaction = 0;
 		}
 	}
-
-
+	
+	
 	function transaction_rollback() {
 		if(!$this->in_transaction) {
 			$this->err_msg = "transaction_rollback called without a transaction";
@@ -183,7 +190,7 @@ class database {
 			
 		}
 	}
-
+	
 	/**
 	 *
 	 * Fetch query results in associate array
@@ -198,7 +205,7 @@ class database {
 			return mysqli_fetch_array($result, MYSQLI_ASSOC);
 		}
 	}
-
+	
 	/**
 	 *
 	 * Fetch query results in numerical array
@@ -213,8 +220,8 @@ class database {
 			return mysqli_fetch_row($result);
 		}
 	}
-
-	/**  
+	
+	/**
 	 *
 	 * Fetch a single query result (first data cell of row 0)
 	 * @param object $result -- valid result object return by query()
@@ -224,7 +231,7 @@ class database {
 		if($this->api == 1) { // mysql ext
 			return mysql_result($result, 0);
 		} else { // mysqli
-			// no direct equivalent in mysqli 
+			// no direct equivalent in mysqli
 			$row = mysqli_fetch_row($result);
 			if($row !== FALSE) {
 				return $row[0];
@@ -233,7 +240,7 @@ class database {
 			}
 		}
 	}
-
+	
 	function get_affected_rows() {
 		if($this->api == 1) { // mysql ext
 			return mysql_affected_rows();
@@ -241,7 +248,7 @@ class database {
 			return mysqli_affected_rows($this->conn);
 		}
 	}
-
+	
 	function get_result_num_rows($result) {
 		if($this->api == 1) { // mysql ext
 			return mysql_num_rows($result);
@@ -249,7 +256,7 @@ class database {
 			return mysqli_num_rows($result);
 		}
 	}
-
+	
 	/**
 	 *
 	 * Get last insert ID
@@ -261,11 +268,11 @@ class database {
 			return mysqli_insert_id($this->conn);
 		}
 	}
-
+	
 	function get_error() {
 		return $this->err_msg;
 	}
-
+	
 	function get_errno() {
 		return $this->errno;
 	}
@@ -284,7 +291,7 @@ class database {
 	}
 	
 	/**
-	 * 
+	 *
 	 * Return a datetime value acceptable by MySQL.
 	 * Input value can be a unix timestamp or a datetime string acceptable
 	 * by php strtotime()
@@ -311,7 +318,7 @@ class database {
 			$datetime_ts = strtotime($datetime_input);
 		}
 		return date("Y-m-d H:i:s", $datetime_ts);
-
+		
 	}
 	
 	
@@ -337,19 +344,19 @@ class database {
 			return str_replace($search, $replace, $input);
 		}
 	}
-
+	
 	/**
-	 * 
+	 *
 	 * @deprecated Use parseInputValue().
-	 * 
+	 *
 	 * Get a proper string which can be used in MySQL insert query value
 	 * If input value is NULL, it will return a literal NULL string.
 	 * If input is a numeric, it will return a literal numeric string.
 	 * If input is an array, it will json-encode it into a quoted JSON string.
 	 * For other non-numeric value, it will return a quoted string.
-	 * 
+	 *
 	 * NOTE: This is an important routine to escape all input value (not just insert) to ensure no SQL injection
-	 * 
+	 *
 	 * @param mixed $var -- input value
 	 * @param boolean $use_double_quote -- use double quote instead of single quote
 	 * @param mixed $default_value -- default value if $var is FALSE
@@ -358,7 +365,7 @@ class database {
 	 * 					'numeric' - force to return an unquoted value
 	 * 					No effect if input is NULL or an array
 	 * @return string value
-	 * 
+	 *
 	 */
 	static function getProperInsertQueryValue($var, $use_double_quote=FALSE, $default_value=NULL, $force_type=NULL) {
 		global $logging;
@@ -366,7 +373,7 @@ class database {
 		if($var === FALSE && !is_null($default_value)) {
 			$var = $default_value;
 		}
-
+		
 		if(is_null($var)) {
 			return 'NULL';
 		} else if($force_type == 'numeric' || (is_null($force_type) && is_numeric($var))) {
@@ -391,9 +398,9 @@ class database {
 	}
 	
 	/**
-	 * 
+	 *
 	 * @deprecated Use parseInputValueForUpdate().
-	 * 
+	 *
 	 * Get a proper string which can be used in MySQL update query value based on input variable type
 	 * If input value is NULL, it will return an empty string.
 	 * If input is a numeric, it will reutrn a string key=num.
@@ -402,7 +409,7 @@ class database {
 	 * @param mixed $var -- input value
 	 * @param boolean $use_double_quote -- use double quote instead of single quote when escaping string
 	 * @return string -- the proper value
-	 * 
+	 *
 	 */
 	static function getProperUpdateQueryValue($key, $var, $use_double_quote=FALSE) {
 		if($var === FALSE) {
@@ -431,21 +438,21 @@ class database {
 	}
 	
 	/**
-	 * 
+	 *
 	 * Get a proper string which can be used in MySQL query value
 	 * If input value is NULL, it will return a literal NULL string.
 	 * If input is a numeric, it will return a literal numeric string.
 	 * If input is an array, it will json-encode it into a quoted JSON string.
 	 * For other non-numeric value, it will return a quoted string.
-	 * 
+	 *
 	 * NOTE: This is an important routine to escape all input value (not just insert) to prevent SQL injection.
 	 * This escape the value, then make sure all string are quoted. Preventing cases like this:
-	 * 
+	 *
 	 *    $id = “0; DELETE FROM users”;
-     *    $id = mysql_real_escape_string($id); // 0; DELETE FROM users
-     *    mysql_query(“SELECT * FROM users WHERE id=$id”);
-     *     
-	 * 
+	 *    $id = mysql_real_escape_string($id); // 0; DELETE FROM users
+	 *    mysql_query(“SELECT * FROM users WHERE id=$id”);
+	 *
+	 *
 	 * @param mixed $var -- input value
 	 * @param boolean $use_double_quote -- use double quote instead of single quote
 	 * @param mixed $default_value -- default value if $var is FALSE
@@ -454,15 +461,15 @@ class database {
 	 * 					'numeric' - force to return an unquoted value
 	 * 					No effect if input is NULL or an array
 	 * @return string value
-	 * 
+	 *
 	 */
 	function parseInputValue($var, $use_double_quote=FALSE, $default_value=NULL, $force_type=NULL) {
-
+		
 		return self::getProperInsertQueryValue($this->escapeUserInput($var), $use_double_quote, $default_value, $force_type);
 	}
 	
 	/**
-	 * 
+	 *
 	 * Get a proper string which can be used in MySQL update query value based on input variable type
 	 * If input value is NULL, it will return an empty string.
 	 * If input is a numeric, it will reutrn a string key=num.
@@ -471,7 +478,7 @@ class database {
 	 * @param mixed $var -- input value
 	 * @param boolean $use_double_quote -- use double quote instead of single quote when escaping string
 	 * @return string -- the proper value
-	 * 
+	 *
 	 */
 	function parseInputValueForUpdate($key, $var, $use_double_quote=FALSE) {
 		
@@ -482,15 +489,15 @@ class database {
 	 * Get a proper string which can be used in MySQL query IN function.
 	 * Takes an array of input values and return a bracketed string imploded with comma with each values properly escaped.
 	 * e.g. ('a', 'b', 'c')
-	 * 
+	 *
 	 * If input value is NULL, it will return a literal NULL string.
 	 * If input is a numeric, it will return a literal numeric string.
 	 * If input is an array, it will json-encode it into a quoted JSON string.
 	 * For other non-numeric value, it will return a quoted string.
-	 * 
+	 *
 	 * @param array $values_array -- array of input values
 	 * @param string $use_double_quote -- use double quote instead of single quote (if input value is a string)
-	 * 
+	 *
 	 * @return string -- a bracketed string with comma imploded
 	 */
 	function parseInputValueForIn($values_array, $use_double_quote=FALSE) {
@@ -509,14 +516,14 @@ class database {
 	 * Get a proper string which can be used in MySQL update query value based on input value type, using changes array,
 	 * and escaping the input as well.
 	 * For details of getting proper string, See getProperUpdateQueryValue()
-	 * 
+	 *
 	 * @param unknown $key -- database column key to update
 	 * @param unknown $changes_array -- an associated array of input keys and values
 	 * @param string $use_double_quote -- use double quote instead of single quote when escaping string
 	 * @return string -- the proper escaped value
 	 */
 	function parseChangesArrayForUpdate($key, $changes_array, $use_double_quote=FALSE) {
-
+		
 		$var = FALSE;
 		if(array_key_exists($key, $changes_array)) {
 			$var = $changes_array[$key];
