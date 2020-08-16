@@ -26,36 +26,39 @@ class database {
 	
 	static public $MYSQL_ERRNO_DUPLICATE_ENTRY = 1062;
 	
-	// $dbname -- name of database; default using the main database name
+	// $db_info_key -- key name of the db info in config; default using the main database name
 	function __construct($db_info_key=NULL) {
-		if(is_null($db_info_key)) {
-			$this->dbhost = config::$db_info['_main']['host'];
-			$this->dbuser = config::$db_info['_main']['user'];
-			$this->dbpass = config::$db_info['_main']['password'];
-			$this->dbname = config::$db_info['_main']['name'];
+		if(!$db_info_key) {
+			$db_info_key = '_main'; // default main database
 		}
-		
-		// 		$this->dbhost = config::$db_host;
-		// 		$this->dbuser = config::$db_user;
-		// 		$this->dbpass = config::$db_password;
-		// 		if(is_null($dbname)) {
-		// 			$this->dbname = config::$db_name_main;
-		// 		} else {
-		// 			$this->dbname = $dbname;
-		// 		}
-			$this->api = config::$db_api;
-			$this->use_db_escape_string = config::$db_escape;
+		if(array_key_exists($db_info_key, config::$db_info)) {
+			$this->dbhost = config::$db_info[$db_info_key]['host'];
+			$this->dbuser = config::$db_info[$db_info_key]['user'];
+			$this->dbpass = config::$db_info[$db_info_key]['password'];
+			$this->dbname = config::$db_info[$db_info_key]['name'];
+		} else {
+			$this->err_msg = "DB config $db_info_key missing";
+			return;
+		}
+		$this->api = config::$db_api;
+		$this->use_db_escape_string = config::$db_escape;
 	}
 	
 	
 	// open a mysql db connection
-	// $new_link -- mysql ext only. Create a new database connect instead of re-using existing one
-	function connect($new_link=FALSE) {
+	// $db_name -- database name to connect. Default using db_name specified in config
+	function connect($db_name=NULL) {
+		if($this->err_msg) {  // there is error in the constructor
+			return false;
+		}
+		if(!$db_name) {
+			$db_name = $this->dbname;
+		}
 		if($this->api == 1) { // mysql ext
-			$this->conn = mysql_connect($this->dbhost, $this->dbuser, $this->dbpass, $new_link);
+			$this->conn = mysql_connect($this->dbhost, $this->dbuser, $this->dbpass);
 			//mysql_set_charset('utf8');
 		} else { // mysqli
-			$this->conn = mysqli_connect($this->dbhost, $this->dbuser, $this->dbpass, $this->dbname);
+			$this->conn = mysqli_connect($this->dbhost, $this->dbuser, $this->dbpass, $db_name);
 			//mysqli_set_charset($this->conn, "utf8");
 		}
 		
@@ -69,7 +72,7 @@ class database {
 			}
 			return false;
 		} else {
-			if($this->api == 1 && !mysql_select_db($this->dbname)) { // mysql ext
+			if($this->api == 1 && !mysql_select_db($db_name)) { // mysql ext
 				$this->err_msg = mysql_error();
 				$this->errno = mysql_errno();
 				return false;
@@ -299,7 +302,6 @@ class database {
 	 * @return string of MySQL datetime value
 	 */
 	static function getDatetimeValue($datetime_input) {
-		global $logging;
 		
 		// make sure we deal with datetime in UTC
 		// and we store datetime in UTC
@@ -368,7 +370,6 @@ class database {
 	 *
 	 */
 	static function getProperInsertQueryValue($var, $use_double_quote=FALSE, $default_value=NULL, $force_type=NULL) {
-		global $logging;
 		
 		if($var === FALSE && !is_null($default_value)) {
 			$var = $default_value;
