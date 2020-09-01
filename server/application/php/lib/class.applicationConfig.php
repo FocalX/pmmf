@@ -58,6 +58,10 @@ class applicationConfig {
 	
 	
 	/* Override settings by individual environments *************************************************************/
+	/* Environment should be defined by a Server configuration defined environment variable called PMMF_ENV
+	   See .htaccess.example
+	 */
+	
 	protected static function defineProd() {
 		// Example to override base configuration
 		//

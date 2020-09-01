@@ -1,0 +1,19 @@
+# This is an example .htaccess file allowing PMMF restful friend URL to be used
+# Copy this file to the same directory as .htaccess
+#
+# Change the RewriteBase according to your subdirectory structure
+#
+# These rules can also be added directly to the corresponding web server configuration,
+# without using .htaccess file
+
+RewriteEngine On
+RewriteBase /
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+RewriteRule ^(.*)$ index.php/$1 [L]
+# If web server does not support PATH_INFO, use this rule instead
+# RewriteRule ^(.*)$ index.php [L]
+
+SetEnv PMMF_ENV local

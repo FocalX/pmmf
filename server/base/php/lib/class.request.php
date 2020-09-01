@@ -59,8 +59,14 @@ class request {
 			$this->user_agent = '';
 			$this->headers = array();
 		}
+		$path_info = array();
 		if(isset($_SERVER['PATH_INFO'])) {
-			$this->url_elements = explode('/', $_SERVER['PATH_INFO']);
+			$path_info = $_SERVER['PATH_INFO'];
+		} else { // if PATH_INFO is not defined, we try to use REQUEST_URI
+			$path_info = $_SERVER['REQUEST_URI'];
+		}
+		if($path_info) {
+			$this->url_elements = explode('/', $path_info);
 			$this->area = $this->url_elements[1];
 			if(count($this->url_elements) > 2 && !empty($this->url_elements[2])) {
 				$this->action = $this->url_elements[2];
