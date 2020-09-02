@@ -63,7 +63,7 @@ class request {
 		if(isset($_SERVER['PATH_INFO'])) {
 			$path_info = $_SERVER['PATH_INFO'];
 		} else { // if PATH_INFO is not defined, we try to use REQUEST_URI
-			$path_info = $_SERVER['REQUEST_URI'];
+			$path_info = explode('?', $_SERVER['REQUEST_URI'])[0];  // removing the query string
 		}
 		if($path_info) {
 			$this->url_elements = explode('/', $path_info);
