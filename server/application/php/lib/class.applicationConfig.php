@@ -35,6 +35,13 @@ class applicationConfig {
 					'password' => '',
 					'name' => 'pmmf_local'
 			),
+			// additional databases can be defined here
+// 			'db1' => array( // additioanl db info key name can be any string.
+// 					'host' => 'localhost',
+// 					'user' => '',
+// 					'password' => '',
+// 					'name' => '_local'
+// 			),
 	);
 	static public $db_api = 2; // 1:mysql / 2:mysqli
 	static public $db_escape = 0; // 1:using / 0:not using real_escape_string function
