@@ -49,24 +49,18 @@ class request {
 		$this->format = 'json'; // json as default format
 
 		// evaluating server request
-		if(function_exists('apache_request_headers')) {  // apache_request_headers may not exist in CLI < 5.5.7
-			$this->method = $_SERVER['REQUEST_METHOD'];
-			$this->user_agent = $_SERVER['HTTP_USER_AGENT'];
-			$this->headers = apache_request_headers();
-		} else {
-			// CLI, does not matter what values these are
-			$this->method = '';
-			$this->user_agent = '';
-			$this->headers = array();
-		}
+		$this->method = $_SERVER['REQUEST_METHOD'];
+		$this->user_agent = $_SERVER['HTTP_USER_AGENT'];
+		$this->headers = apache_request_headers();
+		
 		$path_info = array();
 		if(isset($_SERVER['PATH_INFO'])) {
-			$path_info = $_SERVER['PATH_INFO'];
+		    $path_info = $_SERVER['PATH_INFO'];
 		} else { // if PATH_INFO is not defined, we try to use REQUEST_URI
-			$path_info = explode('?', $_SERVER['REQUEST_URI'])[0];  // removing the query string
+		    $path_info = explode('?', $_SERVER['REQUEST_URI'])[0];
 		}
 		if($path_info) {
-			$this->url_elements = explode('/', $path_info);
+		    $this->url_elements = explode('/', $path_info, 5);
 			$this->area = $this->url_elements[1];
 			if(count($this->url_elements) > 2 && !empty($this->url_elements[2])) {
 				$this->action = $this->url_elements[2];

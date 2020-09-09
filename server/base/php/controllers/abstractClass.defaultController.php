@@ -8,8 +8,6 @@ abstract class defaultController {
 	protected $access_control = NULL;
 	protected $access_control_classname = NULL;
 	
-	protected $version_control = NULL;
-
 	// list of actions and operations which are exempted from authentication
 	// an array of action-operation tuple
 	// e.g. (('action1','operation1'), 'action1','operation2'), ('action2', 'operation3'))
@@ -41,8 +39,8 @@ abstract class defaultController {
 	protected function check_access_control($user_id, $resource_access_level, $area, $input_auth_token='') {
 		global $request, $logging;
 		
-   		//$logging->logMsg(logging::LOG_LEVEL_INFO, 'Current user id:'.$user_id.' / Incoming parameters:'.print_r($request->variables, TRUE));
-   		//$logging->logMsg(logging::LOG_LEVEL_INFO, 'Incoming HTTP headers:'.print_r($request->headers, TRUE));
+   		//$logging->logMsg(logging::LOG_LEVEL_DEBUG, 'Current user id:'.$user_id.' / Incoming parameters:'.print_r($request->variables, TRUE));
+   		//$logging->logMsg(logging::LOG_LEVEL_DEBUG, 'Incoming HTTP headers:'.print_r($request->headers, TRUE));
    		
    		// Check authentication exempt list
    		$this->authentication_exempted = FALSE;
@@ -52,13 +50,13 @@ abstract class defaultController {
    					($exempted_action_operation[0] == $request->action  && $exempted_action_operation[1] == '*') || // matching specific action with all operations
    					($exempted_action_operation[0] == $request->action &&  $exempted_action_operation[1] == $request->operation)) { // matching particular action and operation
    						$this->authentication_exempted = TRUE;
-   						$logging->logMsg(logging::LOG_LEVEL_INFO, 'Authentication exempted operation ('.$request->action.'->'.$request->operation.')');
-   				return TRUE;
+   						$logging->logMsg(logging::LOG_LEVEL_DEBUG, 'Authentication exempted operation ('.$request->action.'->'.$request->operation.')');
    			}
    		}
    		
    		
-   		if(!$this->access_control->check($user_id, $resource_access_level, $area, $input_auth_token)) { // invalid session
+   		if(!$this->authentication_exempted &&
+   				!$this->access_control->check($user_id, $resource_access_level, $area, $input_auth_token)) { // invalid session
 			$ac_classname = get_class($this->access_control);
 			$ac_audit = $this->access_control->getAudit();
 			if($ac_audit == $ac_classname::$audit_credential_mismatched) { // credential not matched with what we know
@@ -71,12 +69,23 @@ abstract class defaultController {
 				throw new pmmfException('Authentication error', 401, array(logging::LOG_LEVEL_FATAL, '(check_access_control) Unknown authentication error:'.$ac_audit));
 			}
 
-			return FALSE;  // should not need to return FALSE, if all cases is throwing an Exception
-			
-		} else {
-
-			return TRUE;
 		}
+
+		// check for those action/operation needed to be secured connection only
+		$secured_connection_required = FALSE;
+		foreach ( $this->secured_connection_required as $secured_action => $secured_operations ) {
+			if (($request->action == $secured_action && $request->operation == $secured_operations)) {
+				$secured_connection_required = TRUE;
+				break;
+			}
+		}
+		if ($secured_connection_required && ! $request->isSecureConnection ()) {
+			
+			throw new pmmfException('Secure connection required', 403,
+					array(logging::LOG_LEVEL_FATAL, 'Secure connection required (action=' . $request->action . ' / operation=' . $request->operation . ')'));
+		}
+		
+		return TRUE;
 
 	}
 	

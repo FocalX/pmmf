@@ -14,6 +14,9 @@ abstract class apiController extends defaultController {
 	function __construct() {
    		global $request, $logging;
    		   		
+   		// exempt these login operations from authentication
+   		$this->exemptOperationFromAuthentication('*', 'login');
+   		
    		parent::__construct();
 
 		// Check access control
@@ -24,13 +27,13 @@ abstract class apiController extends defaultController {
 		$input_vars = $request->variables;
 		if (isset ( $input_vars ['user_id'] )) {
 			$user_id = $input_vars ['user_id'];
-		} else if (isset ( $request->headers ['X-Joiiin-User-Id'] )) { // try http header
-			$user_id = $request->headers ['X-Joiiin-User-Id'];
+		} else if (isset ( $request->headers ['X-Pmmf-User-Id'] )) { // try http header
+			$user_id = $request->headers ['X-Pmmf-User-Id'];
 		}
 		if (isset ( $input_vars ['auth_token'] )) {
 			$input_auth_token = $input_vars ['auth_token'];
-		} else if (isset ( $request->headers ['X-Joiiin-Auth-Token'] )) { // try http header
-			$input_auth_token = $request->headers ['X-Joiiin-Auth-Token'];
+		} else if (isset ( $request->headers ['X-Pmmf-Auth-Token'] )) { // try http header
+			$input_auth_token = $request->headers ['X-Pmmf-Auth-Token'];
 		}
 		
 		$ac_classname = get_class($this->access_control);
@@ -43,26 +46,175 @@ abstract class apiController extends defaultController {
 		// If you want to extend the auth expiry every time after a successful access, uncomment this line
 		// $this->extend_expiry_access_control($user_id, $input_auth_token, $resource_access_level);
 		
-		// some action/operation needs to be secured connection only
-		$secured_connection_required = FALSE;
-		foreach ( $this->secured_connection_required as $secured_action => $secured_operations ) {
-			if (($request->action == $secured_action && $request->operation == $secured_operations)) {
-				$secured_connection_required = TRUE;
-				break;
-			}
-		}
-		if ($secured_connection_required && ! $request->isSecureConnection ()) {
-			
-			$request->setError ( 'Secure connection required' );
-			$request->setHTTPReturnCode ( 403 );
-			$logging->logMsg ( logging::LOG_LEVEL_FATAL, 'Secure connection required (action=' . $request->action . ' / operation=' . $request->operation . ')' );
-		}
-   			
    		   		
  		$request->setReturnFormat('json');
  		
 	}
-
+	
+	
+	function login() {
+		global $request, $logging;
+		
+		if(!$request->getError()) {
+			$input_vars = $request->variables;
+			
+			$user_id = '';
+			$email = '';
+			$handle ='';
+			$facebook_id = '';
+			if(isset($input_vars['user_id']) && !empty($input_vars['user_id'])) {
+				$user_id = $input_vars['user_id'];
+			} else {
+				if(isset($input_vars['email']) && !empty($input_vars['email'])) {
+					$email = $input_vars['email'];
+				} else {
+					if(isset($input_vars['handle']) && !empty($input_vars['handle'])) {
+						$handle = $input_vars['handle'];
+					} else {
+						$request->setError('Required parameter missing');
+						$request->setHTTPReturnCode(400);
+						$logging->logMsg(3, 'Required parameter missing or empty: user_id, email and handle');
+					}
+				}
+			}
+			$password = '';
+			if(isset($input_vars['password']) && !empty($input_vars['password'])) {
+				$password = $input_vars['password'];
+			} else if(empty($facebook_id)) {
+				$request->setError('Required parameter missing');
+				$request->setHTTPReturnCode(400);
+				$logging->logMsg(3, 'Required parameter missing or empty: password');
+			}
+			
+			if(!$request->getError()) {
+				$users_model = new usersModel();
+				$user_info = array();
+				$user_info = $users_model->checkPassword($user_id, $email, $handle, $password);
+				
+				
+				if(!empty($user_info)) {
+					if($user_info['status'] == usersModel::USER_STATUS_ACTIVE) { // this checks for disabled user
+						$access_info = $this->access_control->set($user_info['id'], $user_info['type'], auth::$area_api);
+						if($access_info !== FALSE) {
+							$access_info['refresh_token'] = $access_info['current_refresh_token'];
+							$access_info['session_time_valid'] = config::$session_time_valid;
+							unset($access_info['current_refresh_token']);
+							unset($access_info['auth_token_expiry']);
+							unset($access_info['refresh_token_expiry']);
+							unset($access_info['user_type']);
+							unset($access_info['this_logged_epoch_time']);
+							unset($access_info['last_logged_epoch_time']);
+							$request->setJsonReturnData($access_info);
+							
+						} else {
+							$request->setError('Authentication error');
+							$logging->logMsg(2, "Error set up authentication session  (login) (user_id=$user_info[id]))");
+							$request->setHTTPReturnCode(401);
+							
+						}
+					} else {
+						$request->setError('Account not active');
+						$logging->logMsg(3, "Non-active user account login attempt (by password) (user_id=$user_id / email=$email / handle=$handle)");
+						$request->setHTTPReturnCode(403);
+					}
+				} else {
+					$request->setError('Invalid credential');
+					$logging->logMsg(2, "Wrong user identifier and token/password combination (login) (user_id=$user_id / email=$email / handle=$handle / facebook_id=$facebook_id)");
+					$request->setHTTPReturnCode(401);
+				}
+			}
+		}
+	}
+	
+	function logout() {
+		global $request, $logging;
+		
+		if(!$request->getError()) {
+			// Get user_id from access_control to
+			// make sure user_id is current authenticated user
+			// and not logging out some other user
+			$user_id = $this->access_control->getUserId();
+			$access_info = $this->access_control->clear($user_id);
+			$request->addJsonReturnData('user_id', $user_id);
+			
+		}
+	}
+	
+	function refreshSession() {
+		global $request, $logging;
+		
+		if(!$request->getError()) {
+			$input_vars = $request->variables;
+			
+			$user_id = NULL;
+			if(isset($input_vars['user_id']) && !empty($input_vars['user_id'])) {
+				$user_id = $input_vars['user_id'];
+			} else {
+				$request->setError('Required parameter missing');
+				$request->setHTTPReturnCode(400);
+				$logging->logMsg(3, 'Required parameter missing or empty: user_id');
+				
+			}
+			$refresh_token = NULL;
+			if(isset($input_vars['refresh_token']) && !empty($input_vars['refresh_token'])) {
+				$refresh_token = $input_vars['refresh_token'];
+			} else if(empty($facebook_id)) {
+				$request->setError('Required parameter missing');
+				$request->setHTTPReturnCode(400);
+				$logging->logMsg(3, 'Required parameter missing or empty: refresh_token');
+			}
+			
+			if(!$request->getError()) {
+				$users_model = new usersModel();
+				$user_info = array();
+				$user_info = $users_model->getUser($user_id, NULL, NULL);
+				
+				if(!empty($user_info)) {
+					if($user_info['status'] == usersModel::USER_STATUS_ACTIVE) { // this checks for disabled user
+						$access_info = $this->access_control->refresh($user_id, auth::$area_api, $refresh_token);
+						if($access_info !== FALSE) {
+							$access_info['refresh_token'] = $access_info['current_refresh_token'];
+							$access_info['session_time_valid'] = config::$session_time_valid;
+							$access_info['user_id'] = $user_id;
+							unset($access_info['current_refresh_token']);
+							unset($access_info['previous_refresh_token']);
+							unset($access_info['auth_token_expiry']);
+							unset($access_info['refresh_token_expiry']);
+							unset($access_info['user_type']);
+							unset($access_info['this_logged_epoch_time']);
+							unset($access_info['last_logged_epoch_time']);
+							
+							$request->setJsonReturnData($access_info);
+							$request->addJsonReturnData('version_compatibility', $this->version_control->getAudit());
+							
+						} else {
+							$request->setError('Invalid credential');
+							if($this->access_control->getAudit() == auth::$audit_credential_mismatched) {
+								$logging->logMsg(2, "Wrong user identifier and token combination (refreshSession) (user_id=$user_id / refresh_token=$refresh_token)");
+								$request->setHTTPReturnCode(401);
+							} else if($this->access_control->getAudit() == auth::$audit_credential_expired) {
+								$logging->logMsg(2, "Refresh token expired (refreshSession) (user_id=$user_id / refresh_token=$refresh_token)".$this->access_control->getAudit());
+								$request->setHTTPReturnCode(401);
+							}
+						}
+					} else {
+						$request->setError('Account disabled');
+						$logging->logMsg(3, "Diabled user account session refresh attempt (user_id=$user_id)");
+						$request->setHTTPReturnCode(403);
+					}
+				} else {
+					$request->setError('No such user');
+					$logging->logMsg(2, "No such user found (refreshSession) (user_id=$user_id)");
+					$request->setHTTPReturnCode(401);
+				}
+				
+				
+			}
+		}
+		
+		
+	}
+	
 	// Convert data from DB to proper values to return
 	function _convertDatetimeFromDB(&$info_array) {
    		global $request, $logging;
