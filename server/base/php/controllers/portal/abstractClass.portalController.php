@@ -6,24 +6,24 @@ require_once realpath(__DIR__) . '/../../models/class.usersModel.php';
 require_once realpath(__DIR__) . '/../../lib/class.accessControl.php';
 
 abstract class portalController extends defaultController {
-		
+	
 	private $login_view = '';
 	private $login_success_view = '';
 	private $login_success_redirect_location = '';
 	
 	function __construct() {
-   		global $request, $logging;
-   		
-   		// exempt these login operations from authentication
-   		$this->exemptOperationFromAuthentication('*', 'login');
-   		$this->exemptOperationFromAuthentication('*', 'do_login');
-   		
-   		parent::__construct();
-   		
-   		// Set default return format as HTML
-   		$request->setReturnFormat('html');
-   		
-   		
+		global $request, $logging;
+		
+		// exempt these login operations from authentication
+		$this->exemptOperationFromAuthentication('*', 'login');
+		$this->exemptOperationFromAuthentication('*', 'do_login');
+		
+		parent::__construct();
+		
+		// Set default return format as HTML
+		$request->setReturnFormat('html');
+		
+		
 		$user_id = null;
 		$input_auth_token = null;
 		$resource_access_level = usersModel::USER_TYPE_REGULAR;
@@ -46,15 +46,15 @@ abstract class portalController extends defaultController {
 			// catch the authentication exception, set the view to login screen
 			// then re-throw the exception
 			$request->setView( $this->login_view );
-
+			
 			throw $je;
 		}
 		
 		// Access control check successful (No Exception from check_access_control)
 		// extend the auth expiry every time after a successful access
 		$this->extend_expiry_access_control ( $user_id, $input_auth_token, $resource_access_level );
-
-   		   		
+		
+		
 	}
 	
 	function login() {
@@ -78,11 +78,28 @@ abstract class portalController extends defaultController {
 			$handle ='';
 			if(isset($input_vars['handle']) && !empty($input_vars['handle'])) {
 				$handle = $input_vars['handle'];
-			} else {
-				$request->setError('Required fields missing');
-				$request->setHTTPReturnCode(400);
-				$logging->logMsg(2, 'do_login: Required parameter missing or empty: handle');
-				$request->setView($this->login_view);
+			}
+			
+			$email ='';
+			if(isset($input_vars['email']) && !empty($input_vars['email'])) {
+				$email = $input_vars['email'];
+			}
+			
+			$handle_email = '';
+			if(isset($input_vars['handle_email']) && !empty($input_vars['handle_email'])) {
+				print 'here';
+				$handle_email = $input_vars['handle_email'];
+				// determine if this is a handle or email by finding '@'
+				if(strpos($handle_email, '@') === FALSE) {
+					$handle = $handle_email;
+				} else {
+					$email = $handle_email;
+				}
+			}
+			if(!$handle && !$email) {
+				throw new pmmfException('Required fields missing', 400,
+						array(logging::LOG_LEVEL_ERROR, "Both email and handle are empty when logging in"));
+				
 			}
 			
 			$password = '';
@@ -98,7 +115,7 @@ abstract class portalController extends defaultController {
 			
 			if(!$request->getError()) {
 				$users_model = new usersModel();
-				if($user_info = $users_model->checkPassword(NULL, NULL, $handle, $password)) {
+				if($user_info = $users_model->checkPassword(NULL, $email, $handle, $password)) {
 					// check for disabled user
 					if($user_info['status'] == usersModel::USER_STATUS_ACTIVE) {
 						$ac = $this->access_control;
