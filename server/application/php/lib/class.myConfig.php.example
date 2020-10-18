@@ -1,13 +1,18 @@
 <?php
-/* To define your own system environment,
- * copy this file to the same directory as class.myConfig.php.
- * Override parent SysEnv variables in defineMyConfig() as needed.
+/* Defining your own environment specific to you locally:  
+ *
+ * To define your own system environment,
+ * copy this file to the same directory and name it as 'class.myConfig.php'.
+ * Override parent SysEnv variables in function defineMyConfig() as needed.
+ *
+ * Normally, you would put this file into ignore list and not check it into respository.
  */
 
 class MyConfig extends config{
 
     final static function defineMyConfig() {
-    	parent::$path_base = '/joiiin_dev/';
+        // Example to override the $path_base in your own environment
+    	parent::$path_base = '/my_dev/';
     	
     }
 }

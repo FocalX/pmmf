@@ -70,6 +70,8 @@ class applicationConfig {
 	 */
 	
 	protected static function defineProd() {
+		self::$build_env = 'prod';
+		
 		// Example to override base configuration
 		//
 		// self::$db_host = 'production_db.com';
@@ -79,19 +81,23 @@ class applicationConfig {
 	}
 	
 	protected static function defineStaging() {
-	
+		self::$build_env = 'staging';
+		
 	}
 	
 	protected static function defineQA() {
-	
+		self::$build_env = 'qa';
+		
 	}
 	
 	protected static function defineDev() {
-	
+		self::$build_env = 'dev';
+		
 	}
 	
 	protected static function defineLocal() {
-		 
+		self::$build_env = 'local';
+		
 	    // Local environment has the privilege to load configuration from a separated file 'class.myConfig.php'
 	    // This 'class.myConfig.php' file can be a respository ignored file without being checked in
 	    if(file_exists(realpath(dirname(__FILE__)) . '/class.myConfig.php')) include 'class.myConfig.php';
