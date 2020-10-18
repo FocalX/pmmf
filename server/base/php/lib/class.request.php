@@ -55,12 +55,13 @@ class request {
 		
 		$path_info = array();
 		if(isset($_SERVER['PATH_INFO'])) {
-		    $path_info = $_SERVER['PATH_INFO'];
+			$path_info = $_SERVER['PATH_INFO'];
 		} else { // if PATH_INFO is not defined, we try to use REQUEST_URI
-		    $path_info = explode('?', $_SERVER['REQUEST_URI'])[0];
+			$path_info = explode('?', $_SERVER['REQUEST_URI'])[0];
+			$path_info = str_replace(config::$path_base, '', $path_info); // take away the path base from the path before path evaluation
 		}
 		if($path_info) {
-		    $this->url_elements = explode('/', $path_info, 5);
+			$this->url_elements = explode('/', $path_info, 5);
 			$this->area = $this->url_elements[1];
 			if(count($this->url_elements) > 2 && !empty($this->url_elements[2])) {
 				$this->action = $this->url_elements[2];
@@ -72,8 +73,10 @@ class request {
 				$this->parameter = $this->url_elements[4];
 			}
 			
-			// set efault view to <area>/<action>/<operation>, which could be overriden by user
-			$this->view = $this->area.'/'.$this->action.'/'.$this->operation;
+			// set default view to <area>/<action>/<operation>, which could be overriden by user
+			if($this->area && $this->action && $this->operation) {
+				$this->view = $this->area.'/'.$this->action.'/'.$this->operation;
+			}
 			
 		} else {
 			$this->url_elements = array();  // empty array if no PATH_INFO
@@ -83,7 +86,7 @@ class request {
 		
 		return true;
 	}
-
+	
 	
 	public function setHTTPReturnCode($code) {
 		$this->http_return_code = $code;
@@ -139,7 +142,7 @@ class request {
 	public function getHtmlReturndata() {
 		return $this->html_reutrn_data;
 	}
-
+	
 	public function setView($view) {
 		$this->view = $view;
 	}
@@ -166,14 +169,14 @@ class request {
 	
 	public function isSecureConnection() {
 		// Some older server might not set HTTPS variable. Check port as an addtional check
-		return (isset($_SERVER['HTTPS']) && (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')) || 
-					(isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
+		return (isset($_SERVER['HTTPS']) && (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')) ||
+		(isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
 	}
-
+	
 	public function isClientIPAllowed() {
 		$client_ip = $this->getClientIP();
-
-		if($client_ip !== FALSE) {			
+		
+		if($client_ip !== FALSE) {
 			foreach(config::$security_whitelisted_ips as $whitelisted_ip) {
 				if($client_ip == $whitelisted_ip) {
 					return TRUE;
@@ -184,7 +187,7 @@ class request {
 		return FALSE;
 		
 	}
-
+	
 	public function getClientIP() {
 		$ipaddress = FALSE;
 		if(isset($_SERVER['HTTP_CLIENT_IP'])) {
@@ -208,53 +211,53 @@ class request {
 	
 	/**
 	 * Parse upload file. Call this function if there are files uploading in the request.
-	 * Upload files data will be stored in Class array $files for retrieval. 
-	 * @param unknown $input_name - the value of the name attribute of the 
+	 * Upload files data will be stored in Class array $files for retrieval.
+	 * @param unknown $input_name - the value of the name attribute of the
 	 * 								HTML input element used to upload the file
 	 * @param string $is_image - if this is an image file. (will skip image check if not image file)
-	 * 
+	 *
 	 */
 	function parseUploadFiles($input_name, $is_image=TRUE) {
-
- 		if(!isset($_FILES[$input_name]['error'])) {
-            $this->setError('File upload integrity check failed');
-            return;  // possible corrupted $_FILES attack
-        }
-
+		
+		if(!isset($_FILES[$input_name]['error'])) {
+			$this->setError('File upload integrity check failed');
+			return;  // possible corrupted $_FILES attack
+		}
+		
 		if(is_array($_FILES[$input_name]['error'])) {  // multiple files uploaded
 			$len = count($_FILES[$input_name]['error']);
 			for($i=0;$i<$len;$i++) {
 				$this->_doParseUploadFile($i, $_FILES[$input_name]['error'][$i], $_FILES[$input_name]['size'][$i],
-                                    $_FILES[$input_name]['tmp_name'][$i]);
+						$_FILES[$input_name]['tmp_name'][$i]);
 			}
-
+			
 		} else { // single file uploaded
-		  	$this->_doParseUploadFile(0, $_FILES[$input_name]['error'], $_FILES[$input_name]['size'],
-									$_FILES[$input_name]['tmp_name'], $is_image);
+			$this->_doParseUploadFile(0, $_FILES[$input_name]['error'], $_FILES[$input_name]['size'],
+					$_FILES[$input_name]['tmp_name'], $is_image);
 		}
 	}
 	
 	private function _doParseUploadFile($num, $error, $size, $tmp_name, $is_image) {
-
+		
 		if($size != 0 && !empty($tmp_name)) {
-
+			
 			$media_type = '';
-		  	// check if this file is really an image
+			// check if this file is really an image
 			if($is_image) {
 				$image_info = getimagesize($tmp_name);
-	    		if($image_info === FALSE) {
+				if($image_info === FALSE) {
 					$this->setError('Image integrity check failed');
 				}
 				$media_type =  $image_info['mime'];
 			} else {
-			    $media_type =  mime_content_type($tmp_name);
+				$media_type =  mime_content_type($tmp_name);
 			}
-
+			
 			$image_data = file_get_contents(($tmp_name));
 			$this->files[$num] = array($media_type, $image_data);
-		
+			
 		} else {
-		  $this->setError('No file uploaded or file is empty');
+			$this->setError('No file uploaded or file is empty');
 		}
 	}
 	
@@ -262,20 +265,20 @@ class request {
 		global $logging;
 		
 		$variables = array();
-
+		
 		// first pull all GET/PUT/POST vars in urlencoded query string format
 		// which is done automatically by PHP global $_REQUEST
 		// add COOKIES as well
 		$variables = $_REQUEST;
 		
-		// now check the content type for JSON or other data type and pull 
+		// now check the content type for JSON or other data type and pull
 		// data from PUT/POST bodies. These override what we got from
 		// above if duplicated
 		$content_type = false;
 		if(isset($_SERVER['CONTENT_TYPE'])) {
 			$content_type = $_SERVER['CONTENT_TYPE'];
 		}
-				
+		
 		switch($content_type) {
 			// JSON data
 			case "application/json":
@@ -291,15 +294,15 @@ class request {
 					$logging->logMsg(logging::LOG_LEVEL_INFO, "Error decoding input json data. Problematic original data body: ".$body);
 				}
 				break;
-			// We don't need pull data in case of POST as
-			// this is already done automatically by PHP $_REQUEST
+				// We don't need pull data in case of POST as
+				// this is already done automatically by PHP $_REQUEST
 			case "application/x-www-form-urlencoded":
 				if($_SERVER['REQUEST_METHOD'] != 'POST') {
 					$body = file_get_contents("php://input"); // pull data from PUT/POST body
 					parse_str($body, $postvars);
 					foreach($postvars as $field => $value) {
 						$variables[$field] = $value; // add to or override existing keys
-	
+						
 					}
 				}
 				break;
@@ -307,8 +310,8 @@ class request {
 				// we could parse other supported formats here
 				break;
 		}
-
+		
 		return $variables;
 	}
-
+	
 }
