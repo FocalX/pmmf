@@ -6,24 +6,24 @@ require_once realpath(__DIR__) . '/../../models/class.usersModel.php';
 require_once realpath(__DIR__) . '/../../lib/class.accessControl.php';
 
 abstract class portalController extends defaultController {
-	
+		
 	private $login_view = '';
 	private $login_success_view = '';
 	private $login_success_redirect_location = '';
 	
 	function __construct() {
-		global $request, $logging;
-		
-		// exempt these login operations from authentication
-		$this->exemptOperationFromAuthentication('*', 'login');
-		$this->exemptOperationFromAuthentication('*', 'do_login');
-		
-		parent::__construct();
-		
-		// Set default return format as HTML
-		$request->setReturnFormat('html');
-		
-		
+   		global $request, $logging;
+   		
+   		// exempt these login operations from authentication
+   		$this->exemptOperationFromAuthentication('*', 'login');
+   		$this->exemptOperationFromAuthentication('*', 'do_login');
+   		
+   		parent::__construct();
+   		
+   		// Set default return format as HTML
+   		$request->setReturnFormat('html');
+   		
+   		
 		$user_id = null;
 		$input_auth_token = null;
 		$resource_access_level = usersModel::USER_TYPE_REGULAR;
@@ -46,15 +46,15 @@ abstract class portalController extends defaultController {
 			// catch the authentication exception, set the view to login screen
 			// then re-throw the exception
 			$request->setView( $this->login_view );
-			
+
 			throw $je;
 		}
 		
 		// Access control check successful (No Exception from check_access_control)
 		// extend the auth expiry every time after a successful access
 		$this->extend_expiry_access_control ( $user_id, $input_auth_token, $resource_access_level );
-		
-		
+
+   		   		
 	}
 	
 	function login() {
@@ -78,7 +78,7 @@ abstract class portalController extends defaultController {
 			$handle ='';
 			if(isset($input_vars['handle']) && !empty($input_vars['handle'])) {
 				$handle = $input_vars['handle'];
-			}
+			} 
 			
 			$email ='';
 			if(isset($input_vars['email']) && !empty($input_vars['email'])) {
@@ -97,6 +97,7 @@ abstract class portalController extends defaultController {
 				}
 			}
 			if(!$handle && !$email) {
+				$request->setView($this->login_view);
 				throw new pmmfException('Required fields missing', 400,
 						array(logging::LOG_LEVEL_ERROR, "Both email and handle are empty when logging in"));
 				
@@ -106,60 +107,54 @@ abstract class portalController extends defaultController {
 			if(isset($input_vars['password']) && !empty($input_vars['password'])) {
 				$password = $input_vars['password'];
 			} else {
-				$request->setError('Required fields missing');
-				$request->setHTTPReturnCode(400);
-				$logging->logMsg(2, 'do_login: Required parameter missing or empty: password');
 				$request->setView($this->login_view);
+				throw new pmmfException('Required fields missing', 400,
+						array(logging::LOG_LEVEL_ERROR, "Required parameter missing or empty: password"));
 				
 			}
 			
-			if(!$request->getError()) {
-				$users_model = new usersModel();
-				if($user_info = $users_model->checkPassword(NULL, $email, $handle, $password)) {
-					// check for disabled user
-					if($user_info['status'] == usersModel::USER_STATUS_ACTIVE) {
-						$ac = $this->access_control;
-						$ac_classname = get_class($ac);
-						$access_info = $ac->set($user_info['id'], $user_info['type'], $ac_classname::$area_portal);
-						// Use cookie authentication
-						// cookie is valid for 30 days, but the actual session valid is defined by access control config
-						$cookie_expire_time = time() + 2592000; //60 * 60 * 24 * 30  -- # of seconds of 30 days
-						if(!setcookie('auth_token', $access_info['auth_token'], $cookie_expire_time, "/")) {
-							$request->setError('Failed to setup authentication');
-							$logging->logMsg(4, "do_login: Failed to set authentication cookie [auth_token]");
-							$request->setHTTPReturnCode(403);
-							$request->setView($this->login_view);
-						}
-						if(!setcookie('user_id', $access_info['user_id'], $cookie_expire_time, "/")) {
-							$request->setError('Failed to setup authentication');
-							$logging->logMsg(4, "do_login: Failed to set authentication cookie [user_id]");
-							$request->setHTTPReturnCode(403);
-							$request->setView($this->login_view);
-						}
-						// login successful, set view to the default view
-						$request->setView($this->default_view);
-						// if login_success_redirect_location is set, do re-direct instead
-						// (redirection has precedence)
-						if($this->login_success_redirect_location) {
-							$request->setRedirect($this->login_success_redirect_location);
-						}
-						//$this->index(); // Successful login. Go to default main page
-						
-					} else {
-						$request->setError('Account disabled');
-						$logging->logMsg(4, "do_login: diabled user account login attempt ($handle/$user_info[id])");
+			$users_model = new usersModel();
+			if($user_info = $users_model->checkPassword(NULL, $email, $handle, $password)) {
+				// check for disabled user
+				if($user_info['status'] == usersModel::USER_STATUS_ACTIVE) {
+					$ac = $this->access_control;
+					$ac_classname = get_class($ac);
+					$access_info = $ac->set($user_info['id'], $user_info['type'], $ac_classname::$area_portal);
+					// Use cookie authentication
+					// cookie is valid for 30 days, but the actual session valid is defined by access control config
+					$cookie_expire_time = time() + 2592000; //60 * 60 * 24 * 30  -- # of seconds of 30 days
+					if(!setcookie('auth_token', $access_info['auth_token'], $cookie_expire_time, "/")) {
+						$request->setError('Failed to setup authentication');
+						$logging->logMsg(4, "do_login: Failed to set authentication cookie [auth_token]");
 						$request->setHTTPReturnCode(403);
 						$request->setView($this->login_view);
 					}
-				} else {
-					$request->setError('Invalid username and/or password');
-					$logging->logMsg(3, "do_login: Login Failed because invalid username/password ($handle)");
-					$request->setHTTPReturnCode(401);
+					if(!setcookie('user_id', $access_info['user_id'], $cookie_expire_time, "/")) {
+						$request->setView($this->login_view);
+						throw new pmmfException('Failed to setup authentication', 403,
+								array(logging::LOG_LEVEL_ERROR, "Failed to set authentication cookie: ". $access_info['user_id']));
+					}
+					// login successful, set view to the default view
 					$request->setView($this->login_view);
+					// if login_success_redirect_location is set, do re-direct instead
+					// (redirection has precedence)
+					if($this->login_success_redirect_location) {
+						$request->setRedirect($this->login_success_redirect_location);
+					}
+					//$this->index(); // Successful login. Go to default main page
 					
+				} else {
+					$request->setView($this->login_view);
+					throw new pmmfException('Account disabled', 403,
+							array(logging::LOG_LEVEL_ERROR, "Disabled user account login attempt ($handle/$user_info[id])"));
 				}
+			} else {
+				$request->setView($this->login_view);
+				throw new pmmfException('Invalid username and/or password', 401,
+						array(logging::LOG_LEVEL_ERROR, "Login Failed because invalid username/password ($handle)"));
 				
 			}
+			
 			
 		}
 	}

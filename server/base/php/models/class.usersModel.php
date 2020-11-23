@@ -119,10 +119,10 @@ class usersModel extends defaultModel {
     		$password_escaped = $this->_db->escapeUserInput($changes_array['password']);
     		$password_escaped = "password=AES_ENCRYPT('$password_escaped', '$password_escaped'),";
     	}
-    	$query_update_string = "$handle_escaped $email_escaped $first_name_escaped $last_name_escaped $type_escaped $status_escaped last_updated_datetime=now()";
+    	$query_update_string = "$handle_escaped $email_escaped $first_name_escaped $last_name_escaped $type_escaped $status_escaped $password_escaped last_updated_datetime=now()";
 							
 							$query_updateUser = "UPDATE users SET $query_update_string WHERE id=$id_escaped limit 1";
-							
+				
 		if($this->_db->query($query_updateUser)) {
 			return TRUE;
 		} else {
