@@ -87,7 +87,6 @@ abstract class portalController extends defaultController {
 			
 			$handle_email = '';
 			if(isset($input_vars['handle_email']) && !empty($input_vars['handle_email'])) {
-				print 'here';
 				$handle_email = $input_vars['handle_email'];
 				// determine if this is a handle or email by finding '@'
 				if(strpos($handle_email, '@') === FALSE) {

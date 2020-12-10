@@ -25,6 +25,13 @@ class usersModel extends defaultModel {
     function addUser($type, $email, $handle, $password, $first_name, $last_name, $status) {
     			global $logging, $request;
     			
+    			// encrypting the password before saving to db
+    			$password = password_hash($password, PASSWORD_BCRYPT);
+    			if($password === false) {
+    				throw new pmmfException('Error adding user', 500,
+    						array(logging::LOG_LEVEL_FATAL, 'Password hashing failed', __FILE__));
+    			}
+    			
     			$type_escaped = $this->_db->parseInputValue($type);
     			$handle_escaped = $this->_db->parseInputValue($handle);
     			$email_escaped = $this->_db->parseInputValue($email);
@@ -33,10 +40,11 @@ class usersModel extends defaultModel {
     			$last_name_escaped = $this->_db->parseInputValue($last_name);
     			$status_escaped = $this->_db->parseInputValue($status);
     			
+    			
     			$query_addUser = "INSERT INTO users
    							(handle, email, password, first_name, last_name, type, status, created_datetime, last_updated_datetime)
    						VALUES
-   							($handle_escaped,$email_escaped,AES_ENCRYPT($password_escaped, $password_escaped),$first_name_escaped,$last_name_escaped, $type_escaped, $status_escaped, now(), now())";
+   							($handle_escaped,$email_escaped,$password_escaped,$first_name_escaped,$last_name_escaped, $type_escaped, $status_escaped, now(), now())";
    							
    				if($this->_db->query($query_addUser)) {
    						return $this->_db->get_last_insert_id();
@@ -61,7 +69,7 @@ class usersModel extends defaultModel {
      * @param int $email - user's email
      * @param int $handle = user's handle
      * @param int $all - return user even user has been disabled
-     * @return an associated array of user info;
+     * @return array|boolean -- an associated array of user info;
      * 			an empty array if user is not found;
      * 			FALSE if error.
      * Note: only one of $id, $email or $handle need to be specified. Leaves unused as NULL
@@ -131,7 +139,7 @@ class usersModel extends defaultModel {
 		}
     }
     
-    function checkPassword($user_id, $email, $handle, $password) {
+    function checkPassword($user_id, $email, $handle, $input_password) {
     	global $request, $logging;
     	
     	$where = '';
@@ -148,18 +156,18 @@ class usersModel extends defaultModel {
     		
     	}
     	
-    	$escaped_password = $this->_db->escapeUserInput($password);
-    	
-    	$query_checkPassword = "SELECT id, type, status
+    	$query_checkPassword = "SELECT id, type, status, password
                               FROM users
-                              WHERE ".$where." AND AES_DECRYPT(password, '$escaped_password') = '$escaped_password' limit 1";
+                              WHERE ".$where." limit 1";
     	
-    	if(!($result_checkPassword = $this->_db->query($query_checkPassword))) {
+    	if(!$result = $this->_db->query($query_checkPassword)) {
 	   		throw new pmmfException('Database Error: query failed', 500,
     				array(logging::LOG_LEVEL_FATAL, 'select users (checkPassowrd) query failed: '.$this->_db->get_error(), __FILE__));
     	}
-    	if ($this->_db->get_result_num_rows($result_checkPassword) == 1) { // this checks the password matching
-    		return $this->_db->fetch_result_assoc_array($result_checkPassword);
+    	$user_info = $this->_db->fetch_result_assoc_array($result);
+    	if (password_verify($input_password, $user_info['password'])) { // this checks the password matching
+    		unset($user_info['password']); // remove password hash from return data
+    		return $user_info;
     	} else {
     		return false;
     	}

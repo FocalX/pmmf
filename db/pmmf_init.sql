@@ -21,7 +21,7 @@ CREATE TABLE `auths` (
 
 CREATE TABLE `users` (
   `id` int(8) unsigned NOT NULL AUTO_INCREMENT,
-  `password` blob NOT NULL,
+  `password` varchar(255) NOT NULL,
   `email` varchar(64) DEFAULT NULL,
   `handle` varchar(64) DEFAULT NULL,
   `type` tinyint(1) unsigned NOT NULL,
