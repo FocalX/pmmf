@@ -29,7 +29,7 @@ class usersModel extends defaultModel {
     			$password = password_hash($password, PASSWORD_BCRYPT);
     			if($password === false) {
     				throw new pmmfException('Error adding user', 500,
-    						array(logging::LOG_LEVEL_FATAL, 'Password hashing failed', __FILE__));
+    						array(logging::LOG_LEVEL_FATAL, 'Password hashing failed (addUser)', __FILE__));
     			}
     			
     			$type_escaped = $this->_db->parseInputValue($type);
@@ -94,7 +94,7 @@ class usersModel extends defaultModel {
     	if(!$all) { // check if we want to include disabled activities
     		$no_disabled = ' AND (status!='.self::USER_STATUS_DISABLED.' AND status!='.self::USER_STATUS_INACTIVE.') ';
     	}
-    	$query_getUser = "SELECT *
+    	$query_getUser = "SELECT id, email, handle, type, status, first_name, last_name
     						FROM users
     						WHERE $where $no_disabled limit 1";
     	
@@ -124,13 +124,19 @@ class usersModel extends defaultModel {
     	$last_name_escaped = $this->_db->parseChangesArrayForUpdate('last_name', $changes_array);
     	$password_escaped = '';
     	if(array_key_exists('password', $changes_array)) {
-    		$password_escaped = $this->_db->escapeUserInput($changes_array['password']);
-    		$password_escaped = "password=AES_ENCRYPT('$password_escaped', '$password_escaped'),";
+    		// encrypting the password before saving to db
+    		$password = password_hash($changes_array['password'], PASSWORD_BCRYPT);
+    		if($password === false) {
+    			throw new pmmfException('Error updating user', 500,
+    					array(logging::LOG_LEVEL_FATAL, 'Password hashing failed (updateUser)', __FILE__));
+    		}
+    		$password_escaped = $this->_db->escapeUserInput($password);
+    		$password_escaped = "password='$password_escaped',";
     	}
     	$query_update_string = "$handle_escaped $email_escaped $first_name_escaped $last_name_escaped $type_escaped $status_escaped $password_escaped last_updated_datetime=now()";
 							
-							$query_updateUser = "UPDATE users SET $query_update_string WHERE id=$id_escaped limit 1";
-				
+		$query_updateUser = "UPDATE users SET $query_update_string WHERE id=$id_escaped limit 1";
+		
 		if($this->_db->query($query_updateUser)) {
 			return TRUE;
 		} else {
