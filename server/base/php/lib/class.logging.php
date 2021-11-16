@@ -1,6 +1,10 @@
 <?php
 
-
+/**
+ * log messages can be logged to the file, printed to stdout, and/or saved to/retrived from memory.
+ * @author peter
+ *
+ */
 class logging {
 
 	private $_LOGFILE; // log file handle
@@ -19,14 +23,27 @@ class logging {
 	const LOG_LEVEL_FATAL = 4;
 	
 	private $_log_level; // minimum log level to print
+	private $_save_level; // minimum level to saved; if null, no messages will be saved
 	private $_log_label; // label used in the log
 	private $_log_level_string = array('DEBUG','INFO','WARN','ERROR','FATAL');
 	private $_use_sys_log = false;
+	private $_verbal = false;
+	private $_saved_msgs = '';
 
-	function __construct($logfile, $label, $log_level=2) {
+	/**
+	 * Constructor to create logging service.
+	 * @param string $logfile - log file to save to. NULL to save to syslog
+	 * @param string $label - a text string added to the front of all messages 
+	 * @param number $log_level - minimum log level of message to log. Default LOG_LEVEL_WARN(2)
+	 * @param boolean $verbal - should message be printed to stdout. Default false.
+	 * @param unknown $save_level - minumum log level of message to save to memory. NULL to not save to memory. Default NULL.
+	 */
+	function __construct($logfile, $label, $log_level=2, $verbal=false, $save_level=null) {
 		date_default_timezone_set('UTC');
 		$this->_log_level = $log_level;
+		$this->_save_level = $save_level;
 		$this->_log_label = $label;
+		$this->_verbal = $verbal;
 		$real_logfile = '';
 		if(isset($logfile) && strlen($logfile) > 0) {
 			$real_logfile = $logfile;
@@ -43,42 +60,39 @@ class logging {
 	}
 
 	/* log error message
-	 * $level -- error level of message (See above)
+	 * $level -- error level of this error message (See above)
 	 * $msg -- the error message to log
-	 * $location -- the (file) location where the error happens
+	 * $location -- the (file) location where the error happens. NULL for no location. Default is NULL.
 	 */
 	function logMsg($level, $msg, $location=NULL) {
-		if($level >= $this->_log_level) {
+	    date_default_timezone_set('UTC');
+	    
+	    // log and print message
+	    if(!is_null($this->_log_level) && $level >= $this->_log_level) {
 			if($location) {
 				$msg .= " at ".$location;
 			}
+			$msg = '['.$this->_log_label.' '.$this->_log_level_string[$level].'] '.$msg; // add label
+			$dated_msg = date("Y-m-d H:i e")." $msg\n"; // add date
 			if($this->_use_sys_log) {
-				error_log('['.$this->_log_label.' '.$this->_log_level_string[$level].'] '.$msg, 0);
+			    error_log($msg, 0);
 			} else {
-				date_default_timezone_set('UTC');
-				$msg = date("Y/m/d-H:i UTC").' ['.$this->_log_label.' '.$this->_log_level_string[$level].'] '.$msg."\n";
-				fwrite($this->_LOGFILE, $msg);
+				fwrite($this->_LOGFILE, $dated_msg);
+				
+			}
+			if($this->_verbal) { // print message to output
+			    print $dated_msg;
 			}
 		}
+		// save message
+		if(!is_null($this->_save_level) && $level >= $this->_save_level) {
+		    $this->_saved_msgs .= $dated_msg;
+		}
 	}
+	
+	function getSavedMsgs() {
+	   return $this->_saved_msgs;
+	}
+	 
 
-	function getLatestMsgs($type, $how_many_lines=20, $unfiltered=FALSE) {
-		if($this->_use_sys_log) {
-			// assume using Apache log. (It may not, but assuming for now)
-			$webserver_log_file = '';
-			if($type == 1) {
-				$filter = $this->_log_label;
-				$webserver_log_file = '/var/log/httpd/error_log';
-			} else {
-				$filter = config::$path_base;
-				$webserver_log_file = '/var/log/httpd/access_log';
-			}
-				$grep_filter = '';
-			if(!$unfiltered) {  // take away the grep filter
-				$grep_filter = '| grep \''.$filter.'\'';
-			} 
-				return `tail -$how_many_lines $webserver_log_file $grep_filter`;
-			
-		}
-	}
 }
