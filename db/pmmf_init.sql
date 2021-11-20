@@ -26,6 +26,8 @@ CREATE TABLE `users` (
   `handle` varchar(64) DEFAULT NULL,
   `type` tinyint(1) unsigned NOT NULL,
   `status` tinyint(1) unsigned NOT NULL,
+  `first_name` varchar(64),
+  `last_name` varchar(64),
   `created_datetime` datetime NOT NULL,
   `last_updated_datetime` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),

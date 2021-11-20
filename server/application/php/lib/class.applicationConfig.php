@@ -23,10 +23,6 @@ class applicationConfig {
 	// Paths //////////////////////////////////////////////////////
 	static public $path_base = "/local";  // base path to the server index.php
 	
-	// Short URL ////////////////////////////////////////////
-	static public $short_url_use = FALSE;  // whether using short URL
-	static public $short_url_domain = ''; // domain name of short url
-
 	// DB configuration ///////////////////////////////////////////
 	static public $db_info = array(
 			'_main' => array( // main db info. Key name should always be '_main'

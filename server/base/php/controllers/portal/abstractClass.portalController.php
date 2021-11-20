@@ -165,7 +165,7 @@ abstract class portalController extends defaultController {
 			$this->access_control->clear();  // clear auth
 			
 			$request->setError('Logout successful');
-			$logging->logMsg(1, '(admin panel) Logout successful');
+			$logging->logMsg(1, '(portal) Logout successful');
 			$request->setView($this->login_view);
 		}
 	}
