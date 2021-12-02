@@ -15,7 +15,7 @@ require_once $pmmf_base_location.'controllers/class.pmmfException.php';
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // global variables /////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-$logging = new logging(config::$log_file, config::$path_base, config::$log_level);
+$logging = new logging(config::$log_file, config::$path_base, config::$log_level, false, null, config::$log_show_trace);
 $request = new request();
 
 
@@ -40,8 +40,8 @@ try { // a big try to catch pmmfException
 	//         array(logging::LOG_LEVEL_ERROR,"Server was called when it is down for maintenance ($area/$action/$operation)", __FILE__));
 	// 	}
 	////////////////////////////////////////////////////////////////////////////////////////////////
-			
-			
+	
+	
 	$area = $request->area;
 	$action = $request->action;
 	$operation = $request->operation;
@@ -78,11 +78,25 @@ try { // a big try to catch pmmfException
 	
 	// now call the controller handling method
 	$controller->$operation($parameter);
-			
+	
 } catch(pmmfException $je) {
+	////////////////////////////////////////////////
+	// Catch any error thrown by application, then set the error and http return code,  
+	// and create the corresponding log message
+	// The pmmfException would be handled here and would not be re-thrown
+	
 	$request->setError($je->getMessage());
 	$request->setHTTPReturnCode($je->getCode());
-	call_user_func_array(array($logging, 'logMsg'),$je->getLogDataset());
+	
+	// insert back trace information to call parameters of logMsg()
+	$call_func_params = $je->getLogDataset();
+	if(!array_key_exists(2, $call_func_params)) {
+		$call_func_params[2] = null;
+	}
+	$call_func_params[3] = $je->getTraceAsString();
+	
+	// call logging logMsg() to log a message
+	call_user_func_array(array($logging, 'logMsg'),$call_func_params);
 }
 
 
@@ -94,8 +108,8 @@ try { // a big try to catch pmmfException
 // First check if re-direction has been set
 if($request->getRedirect()) { // if redirect is set, do redirection (ignoring any view)
 	include $pmmf_base_location.'views/defaultRedirectView.php';
-
-// Check if error, use error view
+	
+	// Check if error, use error view
 } else if($request->getError()) { // if error, find error view
 	// Try to application 'operation' specific error view
 	$error_view_file = $pmmf_application_location.'views/'.$request->getView().'ErrorView.'.$request->getReturnFormat().'.php';
@@ -134,7 +148,6 @@ if($request->getRedirect()) { // if redirect is set, do redirection (ignoring an
 		// else use application 'area' default success view
 		$view_dir = dirname($request->getView());
 		while($view_dir && $view_dir != '.') { // loop through all area/sub-areas (subdirectory in areas)
-			$logging->logMsg(0, 'test='.$view_dir);
 			$success_view_file = $pmmf_application_location.'views/'.$view_dir.'/defaultSuccessView.'.$request->getReturnFormat().'.php';
 			if(file_exists($success_view_file)) {
 				include $success_view_file;
@@ -144,7 +157,7 @@ if($request->getRedirect()) { // if redirect is set, do redirection (ignoring an
 			}
 		}
 		
-		if(!$view_dir || $view_dir == '.'){		
+		if(!$view_dir || $view_dir == '.'){
 			// Try the application default success view
 			$success_view_file = $pmmf_application_location.'views/defaultSuccessView.'.$request->getReturnFormat().'.php';
 			if(file_exists($success_view_file)) {

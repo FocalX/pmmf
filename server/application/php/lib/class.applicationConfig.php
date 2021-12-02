@@ -45,6 +45,8 @@ class applicationConfig {
 	// Error logging ////////////////////////////////////////////////
 	static public $log_file = '';   // log filename to output. Empty will use default logging (web server log)
 	static public $log_level = 0;   // minimum log message type. Values are defined in class logging
+	static public $log_show_trace = true;   // show call trace in log message
+	
 	
 	// User session /////////////////////////////////////////////////
 	static public $session_time_valid = 1800; // session time valid in seconds (i.e auth_token valid time) 30 mins = 60*30 = 1800 seconds
