@@ -16,6 +16,7 @@ abstract class apiController extends defaultController {
    		   		
    		// exempt these login operations from authentication
    		$this->exemptOperationFromAuthentication('*', 'login');
+   		$this->exemptOperationFromAuthentication('*', 'refreshSession');
    		
    		parent::__construct();
 
@@ -185,7 +186,6 @@ abstract class apiController extends defaultController {
 							unset($access_info['last_logged_epoch_time']);
 							
 							$request->setJsonReturnData($access_info);
-							$request->addJsonReturnData('version_compatibility', $this->version_control->getAudit());
 							
 						} else {
 							$request->setError('Invalid credential');
