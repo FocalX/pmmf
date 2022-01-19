@@ -18,10 +18,11 @@ class applicationConfig {
     // Build Environment //////////////////////////////////////////
     // Pre-defined environments: 'local', 'dev', 'qa', 'staging', 'prod'
     static public $build_env = 'local';
-	static public $server_name = 'localhost'; // server name used to generate various URLs
     
-	// Paths //////////////////////////////////////////////////////
-	static public $path_base = "/local";  // base path to the server index.php
+	// Server names, paths, etc //////////////////////////////////////////////////////
+    static public $server_name = 'localhost'; // server name. Mainly used to generate various URLs
+    static public $path_base = "/local";  // base path to the server index.php. E.g. for https://yoursite.com/dir1/index.php, /dir1 is the path base.
+    									  // If index.php sits at the base on the site, leave this empty.
 	
 	// DB configuration ///////////////////////////////////////////
 	static public $db_info = array(
@@ -29,14 +30,14 @@ class applicationConfig {
 					'host' => 'localhost',
 					'user' => '',
 					'password' => '',
-					'name' => 'pmmf_local'
+					'name' => 'pmmf_local'  // schema name
 			),
 			// additional databases can be defined here
 // 			'db1' => array( // additioanl db info key name can be any string.
 // 					'host' => 'localhost',
 // 					'user' => '',
 // 					'password' => '',
-// 					'name' => '_local'
+// 					'name' => 'pmmf_local_ex'
 // 			),
 	);
 	static public $db_api = 2; // 1:mysql / 2:mysqli
@@ -72,10 +73,16 @@ class applicationConfig {
 		
 		// Example to override base configuration
 		//
-		// self::$db_host = 'production_db.com';
-		// self::$db_user = 'prod_db_user';
-		// self::$db_password = '12345';
-		// self::$db_name_main = 'my_db';
+		// self::$server_name = 'prod.yoursite.com';
+		// self::$path_base = "";
+		// self::$db_info = array(
+		// 				'_main' => array( // main db info. Key name should always be '_main'
+		// 						'host' => 'prod.yoursite.com',
+		// 						'user' => 'dbuser',
+		// 						'password' => '12345',
+		// 						'name' => 'pmmf_prod'
+		//        );
+       
 	}
 	
 	protected static function defineStaging() {

@@ -53,7 +53,7 @@ class logging {
 			$this->_LOGFILE = fopen($real_logfile, 'a');
 			
 			if(!$this->_LOGFILE) {
-				echo "error opening log file: $real_logfile";
+				echo "error opening log file: $real_logfile\n";
 			}
 			
 		} else {

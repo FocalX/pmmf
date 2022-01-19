@@ -135,6 +135,7 @@ if($request->getRedirect()) { // if redirect is set, do redirection (ignoring an
 				include $error_view_file;
 			} else {
 				// if still nothing found, use the base default error view
+				$logging->logMsg(logging::LOG_LEVEL_INFO, 'No error view found for '.$request->getView().'('.$request->getReturnFormat().'). Using base default error view. Recommended to set up an application default error view.');
 				include $pmmf_base_location.'views/defaultErrorView.'.$request->getReturnFormat().'.php';
 			}
 		}
@@ -164,7 +165,7 @@ if($request->getRedirect()) { // if redirect is set, do redirection (ignoring an
 				include $success_view_file;
 			} else {
 				// if still nothing found, use base default success view
-				$logging->logMsg(3, 'No success view found for '.$request->getView().'('.$request->getReturnFormat().'). Using base default success view.');
+				$logging->logMsg(logging::LOG_LEVEL_INFO, 'No success view found for '.$request->getView().'('.$request->getReturnFormat().'). Using base default success view. Recommended to set up an application default success view.');
 				include $pmmf_base_location.'views/defaultSuccessView.'.$request->getReturnFormat().'.php';
 			}
 		}
