@@ -28,7 +28,7 @@ class request {
 	private $redirect_location = null;
 	
 	// return handling variables
-	// To be set by controller properly before return 
+	// To be set by controller properly before return
 	private $format;  // return format (http or json)
 	private $view;    // view to use
 	private $error;   // set if error
@@ -47,7 +47,7 @@ class request {
 		$this->json_return_data = array();
 		$this->html_reutrn_data = array();
 		$this->format = 'json'; // json as default format
-
+		
 		// evaluating server request
 		$this->method = $_SERVER['REQUEST_METHOD'];
 		$this->user_agent = $_SERVER['HTTP_USER_AGENT'];
@@ -290,7 +290,7 @@ class request {
 					}
 				} else if(json_last_error() != JSON_ERROR_NONE) {  // null does not necessary be an error
 					require_once 'class.miscHelpers.php';
-					$logging->logMsg(logging::LOG_LEVEL_FATAL, "Bad http request input parameters. Error decoding input json data. PHP JSON error code: ".miscHelpers::getJsonError(json_last_error()));
+					$logging->logMsg(logging::LOG_LEVEL_FATAL, "Bad http request input parameters. Error decoding input json data. PHP JSON error code: ".json_last_error_msg());
 					$logging->logMsg(logging::LOG_LEVEL_INFO, "Error decoding input json data. Problematic original data body: ".$body);
 				}
 				break;
