@@ -1,5 +1,5 @@
 <?php
-require_once 'application/php/lib/class.applicationConfig.php';
+require_once $pmmf_application_location . 'lib/class.applicationConfig.php';
 class config extends applicationConfig {
 	
 	protected static function defineProd() {
@@ -10,6 +10,11 @@ class config extends applicationConfig {
 	protected static function defineStaging() {
 		config::$build_env = 'staging';
 		parent::defineStaging ();
+	}
+	
+	protected static function defineDemo() {
+		config::$build_env = 'demo';
+		parent::defineDemo ();
 	}
 	
 	protected static function defineQA() {
@@ -56,6 +61,9 @@ class config extends applicationConfig {
 					break;
 				case 'qa' :
 					self::defineQA ();
+					break;
+				case 'demo' :
+					self::defineDemo ();
 					break;
 				case 'staging' :
 					self::defineStaging ();
