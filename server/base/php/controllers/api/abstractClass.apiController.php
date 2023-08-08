@@ -1,9 +1,9 @@
 <?php
-require_once realpath(__DIR__) . '/../abstractClass.defaultController.php';
+require_once  $pmmf_base_location . 'controllers/abstractClass.defaultController.php';
 
-require_once realpath(__DIR__) . '/../../models/class.usersModel.php';
+require_once  $pmmf_base_location . 'models/class.usersModel.php';
 
-require_once realpath(__DIR__) . '/../../lib/class.apiHelpers.php';
+require_once  $pmmf_base_location . 'lib/class.apiHelpers.php';
 
 
 abstract class apiController extends defaultController {

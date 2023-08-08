@@ -1,9 +1,7 @@
 <?php
-require_once realpath(__DIR__) . '/../abstractClass.defaultController.php';
+require_once $pmmf_base_location . 'controllers/abstractClass.defaultController.php';
 
-require_once realpath(__DIR__) . '/../../models/class.usersModel.php';
-
-require_once realpath(__DIR__) . '/../../lib/class.accessControl.php';
+require_once $pmmf_base_location . 'models/class.usersModel.php';
 
 abstract class portalController extends defaultController {
 		

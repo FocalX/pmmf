@@ -1,5 +1,5 @@
 <?php
-require_once realpath(dirname(__FILE__)).'/../lib/class.database.php';
+require_once $pmmf_base_location . 'lib/class.database.php';
 
 abstract class defaultModel {
 

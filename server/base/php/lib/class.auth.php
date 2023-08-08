@@ -1,5 +1,5 @@
 <?php
-require_once realpath(__DIR__) . '/../models/class.authsModel.php';
+require_once $pmmf_base_location . 'models/class.authsModel.php';
 
 /* Database schema for auths table
 #--- create table for authentication

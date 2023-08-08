@@ -1,5 +1,6 @@
 <?php
-require_once 'application/php/lib/class.applicationConfig.php';
+require_once $pmmf_application_location . 'lib/class.applicationConfig.php';
+
 class config extends applicationConfig {
 	
 	protected static function defineProd() {
