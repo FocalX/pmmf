@@ -119,6 +119,14 @@ class accessControl {
         return $this->_audit;
     }
     
+    /**
+     * Check if current user is authenticated
+     * @return true if authenticated; false otherwise
+     */
+    public function isAuthenticated() {
+        return ($this->_audit === self::$audit_authenticated);
+    }
+    
     public function getUserId() {
         return $_SESSION['id'];
     }

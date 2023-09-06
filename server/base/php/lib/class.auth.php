@@ -1,5 +1,5 @@
 <?php
-require_once $pmmf_base_location . 'models/class.authsModel.php';
+require_once realpath(__DIR__) . '/../models/class.authsModel.php';
 
 /* Database schema for auths table
 #--- create table for authentication
@@ -402,6 +402,14 @@ class auth {
 	 */
 	public function getAudit() {
 		return $this->_audit;
+	}
+	
+	/**
+	 * Check if current user is authenticated
+	 * @return true if authenticated; false otherwise
+	 */
+	public function isAuthenticated() {
+	    return ($this->_audit === self::$audit_authenticated);
 	}
 	
 	public function getUserId() {
