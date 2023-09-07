@@ -508,9 +508,10 @@ class auth {
 		if(!$this->_auth_data) {
 			$auths_model = new authsModel();
 			$this->_auth_data = $auths_model->getAuth($this->_user_id, $this->_area);
-			if(!$this->_auth_data['auth_token']) { // user has been logged out
+			// Note: possible no auth data returned as auth entry has been deleted (server-side) or data from old site
+			if(!$this->_auth_data || !$this->_auth_data['auth_token']) { // user has been logged out
 				$this->_auth_data = NULL;
-			}
+   			}
 		}
 	}
 	
