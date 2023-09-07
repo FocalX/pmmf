@@ -55,8 +55,8 @@ abstract class defaultController {
         }
         
         
-        if(!$this->authentication_exempted &&
-            !$this->access_control->check($user_id, $resource_access_level, $area, $input_auth_token)) { // invalid session
+        if(!$this->access_control->check($user_id, $resource_access_level, $area, $input_auth_token)  // invalid session
+            && !$this->authentication_exempted) { // not authentication exempted
                 $ac_classname = get_class($this->access_control);
                 $ac_audit = $this->access_control->getAudit();
                 if($ac_audit == $ac_classname::$audit_credential_mismatched) { // credential not matched with what we know
